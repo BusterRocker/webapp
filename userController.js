@@ -771,6 +771,21 @@ export function renderDashboard(metrics) {
     if (m.element) m.element.textContent = `${metrics[m.key]}°`;
   });
 
+  // ==========================================
+  // FIXED: LIVE T-SPINE UI INJECTION
+  // ==========================================
+  const tSpineDisp = document.getElementById('angle-tspine');
+  if (tSpineDisp) {
+    // Check both flat metrics and nested liveMetrics for robustness
+    const targetRotation = metrics.tSpineRotation !== undefined ? metrics.tSpineRotation : (metrics.liveMetrics ? metrics.liveMetrics.tSpineRotation : undefined);
+    
+    if (targetRotation !== undefined && !isNaN(targetRotation)) {
+      tSpineDisp.textContent = `${Math.round(targetRotation)}°`;
+      tSpineDisp.style.color = targetRotation > 15 ? '#BA0C2F' : '#818cf8';
+    }
+  }
+  // ==========================================
+
   // Render Hand Metrics if available
   const fallbackDash = state.useInches ? "--.- in" : "--.- cm";
   if (pinchLDisp) {
@@ -5980,6 +5995,14 @@ export function updateDashboardOfflinePlaceholders() {
   ANGLE_METRICS.forEach(m => {
     if (m.element) m.element.textContent = `--°`;
   });
+
+  // T-Spine UI Update (Fixed to prevent 'metrics is not defined' crash)
+const tSpineDisp = document.getElementById('angle-tspine');
+if (tSpineDisp) {
+  // Safe default: Camera is offline or waiting for full 3D body detection
+  tSpineDisp.textContent = `0°`; 
+  tSpineDisp.style.color = '#a7b1b7';
+}
 }
 
 // BIND OVERHEAD SQUAT INTERFACE LISTENERS

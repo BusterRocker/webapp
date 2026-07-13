@@ -23,6 +23,7 @@ import {
   RIGHT_HEEL,
   LEFT_FOOT_INDEX,
   RIGHT_FOOT_INDEX,
+  calculateTSpineRotation, 
   FINGER_COLORS
 } from './helpers.js';
 
@@ -225,6 +226,7 @@ export function calculatePoseMetrics(results) {
     const wl_ankle_r = wl[RIGHT_ANKLE];
 
     if (wl_shoulder_l && wl_shoulder_r && wl_hip_l && wl_hip_r && wl_knee_l && wl_knee_r && wl_ankle_l && wl_ankle_r) {
+      const tSpineRotation = calculateTSpineRotation(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r);
       // Optional world landmarks with graceful fallbacks
       const wl_ear_l = wl[7] || wl[0] || wl_shoulder_l;
       const wl_ear_r = wl[8] || wl[0] || wl_shoulder_r;
@@ -523,7 +525,11 @@ export function calculatePoseMetrics(results) {
         skeletal_height: state.activeCalMethod === 'height' && state.inputHeightCm ? state.inputHeightCm : smooth('body_height_skeletal', skeletal_height_cm, 8, 0.25),
         live_height: smooth('body_height_live', wl_vertical_height_cm * scaleFactor3D, 8, 0.25),
 
-        kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR
+        kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
+        
+        tSpineRotation: smooth('tSpineRotation', calculateTSpineRotation(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r), 8, 0.25),
+
+        gTSpine: console.log("3D Active! T-Spine Math Value =", smooth('tSpineRotation', calculateTSpineRotation(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r), 8, 0.25))
       };
 
       // Real-time Pose Detection Logic
@@ -650,7 +656,8 @@ export function calculatePoseMetrics(results) {
       skeletal_height: state.activeCalMethod === 'height' && state.inputHeightCm ? state.inputHeightCm : smooth('body_height_skeletal', skeletal_height_cm),
       live_height: smooth('body_height_live', live_height_cm),
 
-      kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR
+      kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
+      tSpineRotation: 0
     };
 
     let detectedPose = "A-Pose";
@@ -678,6 +685,7 @@ export function calculatePoseMetrics(results) {
     kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
     ankleAngleL, ankleAngleR,
     liveMetrics
+    
   };
 
   // If using a mirrored user front webcam, swap left/right landmarks and metrics to match actual anatomy

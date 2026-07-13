@@ -265,11 +265,11 @@
 
         <!-- Real-time Joint Angles -->
         <div class="panel-section">
-        <div class="section-title">Joint Angles (Flexion)</div>
-        <div class="angle-header-row angle-header-row-spaced">
-          <span class="side-header-left">Left Side</span>
-          <span class="side-header-right">Right Side</span>
-        </div>
+          <div class="section-title">Joint Angles (Flexion)</div>
+          <div class="angle-header-row angle-header-row-spaced">
+            <span class="side-header-left">Left Side</span>
+            <span class="side-header-right">Right Side</span>
+          </div>
           <div class="angle-box-grid">
             <div class="angle-box left-border">
               <div class="angle-lbl">Knee Angle</div>
@@ -297,7 +297,12 @@
               <div class="angle-lbl">Elbow Angle</div>
               <div id="angle-elbow-r" class="angle-val right-color">--°</div>
             </div>
+          </div> <div class="angle-box-unified" style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-left: 4px solid #818cf8; border-radius: 6px; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="angle-lbl" style="font-weight: 600; font-size: 0.8rem; color: #a7b1b7;">T-Spine Rotation (Trunk Twist)</div>
+            <div id="angle-tspine" class="angle-val" style="font-size: 1.2rem; font-weight: 700; color: #818cf8;">--°</div>
           </div>
+
+        </div>
         </div>
 
         <!-- Lower Body Segments -->

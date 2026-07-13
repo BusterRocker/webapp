@@ -5,6 +5,7 @@
 import { state, snapshotStore, updateHeightInputUnit } from './helpers.js';
 import { setupMediaPipeCallbacks } from './mediapipeLogic.js';
 import { setupReportCompiler } from './reportCompiler.js';
+import { smooth, calculateAngle, calculateTSpineRotation } from './helpers.js';
 import {
   canvasElement,
   statusElement,

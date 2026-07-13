@@ -349,6 +349,24 @@ export function calculateAngle(p_vertex, p_arm1, p_arm2) {
   return Math.round(Math.acos(clampedCos) * (180 / Math.PI));
 }
 
+export function calculateTSpineRotation(shoulder_l, shoulder_r, hip_l, hip_r) {
+  if (!shoulder_l || !shoulder_r || !hip_l || !hip_r || shoulder_l.z === undefined) return 0;
+  
+  // Calculate the 3D heading angle of the shoulders
+  const shoulderAngle = Math.atan2(shoulder_l.z - shoulder_r.z, shoulder_l.x - shoulder_r.x);
+  
+  // Calculate the 3D heading angle of the hips
+  const hipAngle = Math.atan2(hip_l.z - hip_r.z, hip_l.x - hip_r.x);
+  
+  // Find the difference and convert to degrees
+  let diffDeg = Math.abs((shoulderAngle - hipAngle) * (180 / Math.PI));
+  
+  // Keep it within standard 0-180 range
+  if (diffDeg > 180) diffDeg = 360 - diffDeg;
+  
+  return Math.round(diffDeg);
+}
+
 export function getCanvasX(normX) {
   const width = state.canvasWidth || 640;
   if (state.isUploadedMedia) {
