@@ -1,6 +1,9 @@
 // ==========================================
 // MEDIAPIPE CORE CV MODELS SETUP & CALCULATIONS
 // ==========================================
+// ==========================================
+// MEDIAPIPE CORE CV MODELS SETUP & CALCULATIONS
+// ==========================================
 import {
   state,
   smooth,
@@ -24,7 +27,8 @@ import {
   LEFT_FOOT_INDEX,
   RIGHT_FOOT_INDEX,
   calculateTSpineRotation, 
-  FINGER_COLORS
+  FINGER_COLORS,
+  calculateThoracicExtension // 👈 ADD THIS LINE HERE
 } from './helpers.js';
 
 // MediaPipe Holistic Setup (exported as pose for backward compatibility and minimal churn)
@@ -531,9 +535,7 @@ export function calculatePoseMetrics(results) {
         kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
         
         // SWAPPED OUT ROTATION FOR SAGITTAL-PLANE EXTENSION
-        thoracicExtension: smooth('thoracicExtension', calculateThoracicExtension(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r, wl_nose), 8, 0.25),
-
-        gThoracic: console.log("3D Active! Thoracic Extension Value =", smooth('thoracicExtension', calculateThoracicExtension(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r, wl_nose), 8, 0.25))
+        thoracicExtension: smooth('thoracicExtension', calculateThoracicExtension(shoulder_l_wl, shoulder_r_wl, hip_l_wl, hip_r_wl, nose_wl), 8, 0.25)
       };
 
       // Real-time Pose Detection Logic
@@ -637,32 +639,30 @@ export function calculatePoseMetrics(results) {
     const straight_wingspan_cm = straight_wingspan_px / activePixelsPerCm;
 
     liveMetrics = {
-      thigh_l: smooth('thigh_l', thigh_l_px / activePixelsPerCm),
-      thigh_r: smooth('thigh_r', thigh_r_px / activePixelsPerCm),
-      shin_l: smooth('shin_l', shin_l_px / activePixelsPerCm),
-      shin_r: smooth('shin_r', shin_r_px / activePixelsPerCm),
-      foot_l: smooth('foot_l', foot_l_px / activePixelsPerCm),
-      foot_r: smooth('foot_r', foot_r_px / activePixelsPerCm),
-      
-      torso_l: smooth('torso_l', torso_l_px / activePixelsPerCm),
-      torso_r: smooth('torso_r', torso_r_px / activePixelsPerCm),
-      upperarm_l: smooth('upperarm_l', upperarm_l_px / activePixelsPerCm),
-      upperarm_r: smooth('upperarm_r', upperarm_r_px / activePixelsPerCm),
-      forearm_l: smooth('forearm_l', forearm_l_px / activePixelsPerCm),
-      forearm_r: smooth('forearm_r', forearm_r_px / activePixelsPerCm),
-
-      fingerToToeL: smooth('finger_to_toe_l', fingerToToeL_px / activePixelsPerCm),
-      fingerToToeR: smooth('finger_to_toe_r', fingerToToeR_px / activePixelsPerCm),
-      shoulderW: smooth('shoulderW', shoulderW_px / activePixelsPerCm),
-      hipW: smooth('hipW', hipW_px / activePixelsPerCm),
-      wingspan: smooth('wingspan_distance', wingspan_cm),
-
-      skeletal_height: state.activeCalMethod === 'height' && state.inputHeightCm ? state.inputHeightCm : smooth('body_height_skeletal', skeletal_height_cm),
-      live_height: smooth('body_height_live', live_height_cm),
-
-      kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
-      tSpineRotation: 0
-    };
+        thigh_l: smooth('thigh_l', thigh_l_wl * scaleFactor3D, 8, 0.25),
+        thigh_r: smooth('thigh_r', thigh_r_wl * scaleFactor3D, 8, 0.25),
+        shin_l: smooth('shin_l', shin_l_wl * scaleFactor3D, 8, 0.25),
+        shin_r: smooth('shin_r', shin_r_wl * scaleFactor3D, 8, 0.25),
+        foot_l: smooth('foot_l', foot_l_wl * scaleFactor3D, 8, 0.25),
+        foot_r: smooth('foot_r', foot_r_wl * scaleFactor3D, 8, 0.25),
+        torso_l: smooth('torso_l', torso_l_wl * scaleFactor3D, 8, 0.25),
+        torso_r: smooth('torso_r', torso_r_wl * scaleFactor3D, 8, 0.25),
+        upperarm_l: smooth('upperarm_l', upperarm_l_wl * scaleFactor3D, 8, 0.25),
+        upperarm_r: smooth('upperarm_r', upperarm_r_wl * scaleFactor3D, 8, 0.25),
+        forearm_l: smooth('forearm_l', forearm_l_wl * scaleFactor3D, 8, 0.25),
+        forearm_r: smooth('forearm_r', forearm_r_wl * scaleFactor3D, 8, 0.25),
+        fingerToToeL: smooth('finger_to_toe_l', fingerToToeL_wl * scaleFactor3D, 8, 0.25),
+        fingerToToeR: smooth('finger_to_toe_r', fingerToToeR_wl * scaleFactor3D, 8, 0.25),
+        shoulderW: smooth('shoulderW', shoulderW_wl * scaleFactor3D, 8, 0.25),
+        hipW: smooth('hipW', hipW_wl * scaleFactor3D, 8, 0.25),
+        wingspan: smooth('wingspan_distance', wingspan_wl * scaleFactor3D, 8, 0.25),
+        skeletal_height: state.activeCalMethod === 'height' && state.inputHeightCm ? state.inputHeightCm : smooth('body_height_skeletal', skeletal_height_wl * scaleFactor3D, 8, 0.25),
+        live_height: smooth('body_height_live', live_height_wl * scaleFactor3D, 8, 0.25),
+        kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
+        
+        // CORRECTION: Swapped prefix 'wl_' parameters for the actual suffix '_wl' variables
+        thoracicExtension: smooth('thoracicExtension', calculateThoracicExtension(shoulder_l_wl, shoulder_r_wl, hip_l_wl, hip_r_wl, nose_wl), 8, 0.25)
+      };
 
     let detectedPose = "A-Pose";
     if (liveMetrics.skeletal_height > 0) {
