@@ -501,6 +501,9 @@ export function calculatePoseMetrics(results) {
         skeletal_height_cm = state.inputHeightCm;
       }
 
+      // SAFELY EXTRACT NOSE LANDMARK (Index 0) FOR FACING DIRECTION
+      const wl_nose = results.poseWorldLandmarks ? results.poseWorldLandmarks[0] : results.poseLandmarks[0];
+
       liveMetrics = {
         thigh_l: smooth('thigh_l', thigh_l_wl * scaleFactor3D, 8, 0.25),
         thigh_r: smooth('thigh_r', thigh_r_wl * scaleFactor3D, 8, 0.25),
@@ -527,9 +530,10 @@ export function calculatePoseMetrics(results) {
 
         kneeAngleL, kneeAngleR, hipAngleL, hipAngleR, elbowAngleL, elbowAngleR,
         
-        tSpineRotation: smooth('tSpineRotation', calculateTSpineRotation(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r), 8, 0.25),
+        // SWAPPED OUT ROTATION FOR SAGITTAL-PLANE EXTENSION
+        thoracicExtension: smooth('thoracicExtension', calculateThoracicExtension(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r, wl_nose), 8, 0.25),
 
-        gTSpine: console.log("3D Active! T-Spine Math Value =", smooth('tSpineRotation', calculateTSpineRotation(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r), 8, 0.25))
+        gThoracic: console.log("3D Active! Thoracic Extension Value =", smooth('thoracicExtension', calculateThoracicExtension(wl_shoulder_l, wl_shoulder_r, wl_hip_l, wl_hip_r, wl_nose), 8, 0.25))
       };
 
       // Real-time Pose Detection Logic

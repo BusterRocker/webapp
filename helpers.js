@@ -349,24 +349,39 @@ export function calculateAngle(p_vertex, p_arm1, p_arm2) {
   return Math.round(Math.acos(clampedCos) * (180 / Math.PI));
 }
 
-let maxShoulderW = 0;
-export function calculateTSpineRotation(shoulder_l, shoulder_r, hip_l, hip_r) {
-    // 1. Calculate ONLY the 2D width of the shoulders
-    const currentShoulderW = Math.hypot(shoulder_l.x - shoulder_r.x, shoulder_l.y - shoulder_r.y);
+export function calculateThoracicExtension(shoulder_l, shoulder_r, hip_l, hip_r, nose) {
+  if (!shoulder_l || !shoulder_r || !hip_l || !hip_r || !nose) return 0;
 
-    // 2. Auto-calibrate the max width when you are facing the camera
-    maxShoulderW = Math.max(maxShoulderW * 0.999, currentShoulderW);
+  // 1. Calculate midpoints to represent the center-line of the spine
+  const midHip = {
+    x: (hip_l.x + hip_r.x) / 2,
+    y: (hip_l.y + hip_r.y) / 2
+  };
 
-    if (maxShoulderW === 0) return 0;
+  const midShoulder = {
+    x: (shoulder_l.x + shoulder_r.x) / 2,
+    y: (shoulder_l.y + shoulder_r.y) / 2
+  };
 
-    // 3. Find out how much the shoulder width has shrunk (1.0 = facing forward, 0.0 = sideways)
-    const shoulderRatio = Math.max(0, Math.min(1, currentShoulderW / maxShoulderW));
+  // 2. Auto-detect which way the user is facing in side-profile
+  // In screen coordinates: if the nose is to the right of the shoulder, they face right.
+  const isFacingRight = nose.x > midShoulder.x;
 
-    // 4. Calculate the angle based purely on the shoulders. 
-    // Since your legs are planted, this IS your true spine twist.
-    const tSpineAngle = (1 - shoulderRatio) * 90;
+  // 3. Calculate the Torso vector (dx and dy)
+  const dx = midShoulder.x - midHip.x;
+  const dy = midShoulder.y - midHip.y; // Note: Screen Y increases downwards
 
-    return tSpineAngle;
+  // 4. Find the angle of the torso relative to a vertical line (0, -1)
+  const angleRad = Math.atan2(dx, -dy);
+  const angleDeg = angleRad * (180 / Math.PI);
+
+  // 5. Isolate backward extension based on orientation
+  // - Facing Right: Arching backward moves shoulders LEFT (negative angle relative to vertical)
+  // - Facing Left: Arching backward moves shoulders RIGHT (positive angle relative to vertical)
+  let extension = isFacingRight ? -angleDeg : angleDeg;
+
+  // Return the degrees of extension (capped at 0 so forward-slouching is ignored)
+  return Math.max(0, Math.round(extension));
 }
 
 export function getCanvasX(normX) {
@@ -471,4 +486,3 @@ export function triggerFlashEffect() {
     }
   }, 30);
 }
-

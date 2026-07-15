@@ -16,7 +16,8 @@ import {
   updateHeightInputUnit,
   formatSkeletalHeight,
   triggerFlashEffect,
-  getDomMeasurementCm
+  getDomMeasurementCm,
+  calculateThoracicExtension
 } from './helpers.js';
 
 import { pose, hands, calculatePoseMetrics } from './mediapipeLogic.js';
@@ -772,16 +773,18 @@ export function renderDashboard(metrics) {
   });
 
   // ==========================================
-  // FIXED: LIVE T-SPINE UI INJECTION
+  // FIXED: LIVE THORACIC EXTENSION UI INJECTION
   // ==========================================
-  const tSpineDisp = document.getElementById('angle-tspine');
-  if (tSpineDisp) {
+  const thoracicDisp = document.getElementById('angle-thoracic'); 
+  if (thoracicDisp) {
     // Check both flat metrics and nested liveMetrics for robustness
-    const targetRotation = metrics.tSpineRotation !== undefined ? metrics.tSpineRotation : (metrics.liveMetrics ? metrics.liveMetrics.tSpineRotation : undefined);
+    const targetExtension = metrics.thoracicExtension !== undefined 
+      ? metrics.thoracicExtension 
+      : (metrics.liveMetrics ? metrics.liveMetrics.thoracicExtension : undefined);
     
-    if (targetRotation !== undefined && !isNaN(targetRotation)) {
-      tSpineDisp.textContent = `${Math.round(targetRotation)}°`;
-      tSpineDisp.style.color = targetRotation > 15 ? '#BA0C2F' : '#818cf8';
+    if (targetExtension !== undefined && !isNaN(targetExtension)) {
+      thoracicDisp.textContent = `${Math.round(targetExtension)}°`;
+      thoracicDisp.style.color = targetExtension > 15 ? '#BA0C2F' : '#818cf8';
     }
   }
   // ==========================================
@@ -837,48 +840,67 @@ export function onPoseResults(results) {
     state.latestPoseResults = results;
 
     // Run core metrics calculation during frame-by-frame preprocessing (and other phases) to ensure peaks are fully analyzed
-    if (results && results.poseLandmarks) {
-      calculated = calculatePoseMetrics(results);
-      if (calculated) {
-        const kneeAngleL = calculated.kneeAngleL;
-        const kneeAngleR = calculated.kneeAngleR;
-        const hipAngleL = calculated.hipAngleL;
-        const hipAngleR = calculated.hipAngleR;
-        const ankleAngleL = calculated.ankleAngleL;
-        const ankleAngleR = calculated.ankleAngleR;
+  if (results && results.poseLandmarks) {
+    calculated = calculatePoseMetrics(results);
+    if (calculated) {
+      
+      // ==========================================
+      // 🚀 ADDED: THORACIC EXTENSION CALCULATION
+      // ==========================================
+      const landmarks = results.poseLandmarks;
+      const nose = landmarks[0];
+      const shoulder_l = landmarks[11];
+      const shoulder_r = landmarks[12];
+      const hip_l = landmarks[23];
+      const hip_r = landmarks[24];
 
-        const kneeMobL = 180 - (kneeAngleL || 180);
-        const kneeMobR = 180 - (kneeAngleR || 180);
-        const hipMobL = 180 - (hipAngleL || 180);
-        const hipMobR = 180 - (hipAngleR || 180);
-        const ankleMobL = Math.max(0, 115 - (ankleAngleL || 115));
-        const ankleMobR = Math.max(0, 115 - (ankleAngleR || 115));
+      // Calculate, smooth, and attach the thoracic extension to the calculated object
+      const rawExtension = calculateThoracicExtension(shoulder_l, shoulder_r, hip_l, hip_r, nose);
+      calculated.thoracicExtension = smooth('thoracicExtension', rawExtension, 8, 0.25);
+      
+      // Optional: Keep this console log for active testing, delete it when you're done!
+      console.log("Thoracic Extension (Deg) =", calculated.thoracicExtension);
+      // ==========================================
 
-        state.squatPeaks = getDefaultSquatPeaks(state.squatPeaks);
+      const kneeAngleL = calculated.kneeAngleL;
+      const kneeAngleR = calculated.kneeAngleR;
+      const hipAngleL = calculated.hipAngleL;
+      const hipAngleR = calculated.hipAngleR;
+      const ankleAngleL = calculated.ankleAngleL;
+      const ankleAngleR = calculated.ankleAngleR;
 
-        if (state.squatTestingSide === 'left') {
+      const kneeMobL = 180 - (kneeAngleL || 180);
+      const kneeMobR = 180 - (kneeAngleR || 180);
+      const hipMobL = 180 - (hipAngleL || 180);
+      const hipMobR = 180 - (hipAngleR || 180);
+      const ankleMobL = Math.max(0, 115 - (ankleAngleL || 115));
+      const ankleMobR = Math.max(0, 115 - (ankleAngleR || 115));
+
+      state.squatPeaks = getDefaultSquatPeaks(state.squatPeaks);
+
+      if (state.squatTestingSide === 'left') {
+        state.squatPeaks.kneeL = Math.max(state.squatPeaks.kneeL, kneeMobL);
+        state.squatPeaks.hipL = Math.max(state.squatPeaks.hipL, hipMobL);
+        state.squatPeaks.ankleL = Math.max(state.squatPeaks.ankleL, ankleMobL);
+      } else if (state.squatTestingSide === 'right') {
+        state.squatPeaks.kneeR = Math.max(state.squatPeaks.kneeR, kneeMobR);
+        state.squatPeaks.hipR = Math.max(state.squatPeaks.hipR, hipMobR);
+        state.squatPeaks.ankleR = Math.max(state.squatPeaks.ankleR, ankleMobR);
+      } else if (state.squatTestingSide === 'frontal') {
+        if (state.allowFrontalUpdateL) {
           state.squatPeaks.kneeL = Math.max(state.squatPeaks.kneeL, kneeMobL);
           state.squatPeaks.hipL = Math.max(state.squatPeaks.hipL, hipMobL);
           state.squatPeaks.ankleL = Math.max(state.squatPeaks.ankleL, ankleMobL);
-        } else if (state.squatTestingSide === 'right') {
+        }
+        if (state.allowFrontalUpdateR) {
           state.squatPeaks.kneeR = Math.max(state.squatPeaks.kneeR, kneeMobR);
           state.squatPeaks.hipR = Math.max(state.squatPeaks.hipR, hipMobR);
           state.squatPeaks.ankleR = Math.max(state.squatPeaks.ankleR, ankleMobR);
-        } else if (state.squatTestingSide === 'frontal') {
-          if (state.allowFrontalUpdateL) {
-            state.squatPeaks.kneeL = Math.max(state.squatPeaks.kneeL, kneeMobL);
-            state.squatPeaks.hipL = Math.max(state.squatPeaks.hipL, hipMobL);
-            state.squatPeaks.ankleL = Math.max(state.squatPeaks.ankleL, ankleMobL);
-          }
-          if (state.allowFrontalUpdateR) {
-            state.squatPeaks.kneeR = Math.max(state.squatPeaks.kneeR, kneeMobR);
-            state.squatPeaks.hipR = Math.max(state.squatPeaks.hipR, hipMobR);
-            state.squatPeaks.ankleR = Math.max(state.squatPeaks.ankleR, ankleMobR);
-          }
-          
-          // Cache jointsOverhead directly from analyzed static frame results
-          state.jointsOverhead = JSON.parse(JSON.stringify(calculated));
         }
+        
+        // Cache jointsOverhead directly from analyzed static frame results
+        state.jointsOverhead = JSON.parse(JSON.stringify(calculated));
+      }
 
         // Track frontal Knee Valgus/Cave-In peaks during active squat movement (knee flexion >= 30 degrees)
         if (state.squatTestingSide === 'frontal') {
@@ -5996,12 +6018,12 @@ export function updateDashboardOfflinePlaceholders() {
     if (m.element) m.element.textContent = `--°`;
   });
 
-  // T-Spine UI Update (Fixed to prevent 'metrics is not defined' crash)
-const tSpineDisp = document.getElementById('angle-tspine');
-if (tSpineDisp) {
+// Thoracic Extension UI Update (Fixed to prevent 'metrics is not defined' crash)
+const thoracicDisp = document.getElementById('angle-thoracic'); 
+if (thoracicDisp) {
   // Safe default: Camera is offline or waiting for full 3D body detection
-  tSpineDisp.textContent = `0°`; 
-  tSpineDisp.style.color = '#a7b1b7';
+  thoracicDisp.textContent = `0°`; 
+  thoracicDisp.style.color = '#a7b1b7';
 }
 }
 
